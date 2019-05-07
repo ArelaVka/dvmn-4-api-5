@@ -4,7 +4,7 @@ url = 'https://api.hh.ru/vacancies'
 
 vacancies_count = {}
 
-language_list = ['python', 'java', 'Javascript']
+language_list = ['python', 'java', 'Javascript','TypeScript', 'Swift', 'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby']
 
 for language in language_list:
   headers = {
@@ -15,7 +15,7 @@ for language in language_list:
     'text': 'программист' + language
   }
   response = requests.get(url, headers=headers, params=params)
-  print(response.url)
+  #print(response.url)
   count = response.json()
   vacancies_count.update({language : count['found']})
 print(vacancies_count)
