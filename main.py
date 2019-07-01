@@ -41,7 +41,7 @@ for language in language_list:
     page_data = requests.get(url, headers=headers, params=params).json()
     pages_number = page_data['pages']
     page += 1
-    print('PAGE {}'.format(page))
+    print('Download {}, page {}'.format(language, page))
     for vacancy in page_data['items']:
       if predict_rub_salary(vacancy) is not 'None':
         vacancies_processed += 1
@@ -49,4 +49,4 @@ for language in language_list:
     average_salary = int(summary_salary / vacancies_processed)
   middle_language_price[language] = {'vacancies_found': page_data['found'], 'vacancies_processed': vacancies_processed, 'average_salary': average_salary}
 
-  print(json.dumps(middle_language_price, indent=4, sort_keys=True))
+print(json.dumps(middle_language_price, indent=4, sort_keys=True))
