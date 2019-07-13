@@ -3,22 +3,13 @@ from dotenv import load_dotenv
 import os
 from terminaltables import AsciiTable
 
-load_dotenv()
-
-
-def is_none(param):
-    if param is None:
-        return 0
-    else:
-        return param
-
 
 def get_predict_salary(salary_from, salary_to):
     if (salary_from > 0) and (salary_to > 0):
         return int((salary_from + salary_to) / 2)
-    elif (salary_from > 0):
+    elif salary_from > 0:
         return int(salary_from * 1.2)
-    elif (salary_to > 0):
+    elif salary_to > 0:
         return int(salary_to * 0.8)
     else:
         return None
@@ -26,8 +17,8 @@ def get_predict_salary(salary_from, salary_to):
 
 def get_predict_rub_salary_hh(vacancy):
     if (vacancy['salary'] is not None) and (vacancy['salary']['currency'] == 'RUR'):
-        salary_from = is_none(vacancy['salary']['from'])
-        salary_to = is_none(vacancy['salary']['to'])
+        salary_from = (vacancy['salary']['from']) or 0
+        salary_to = (vacancy['salary']['to']) or 0
         return get_predict_salary(salary_from, salary_to)
     return None
 
@@ -35,7 +26,7 @@ def get_predict_rub_salary_hh(vacancy):
 def get_predict_rub_salary_sj(vacancy):
     salary_from = vacancy['payment_from']
     salary_to = vacancy['payment_to']
-    if (vacancy['currency'] == 'rub'):
+    if vacancy['currency'] == 'rub':
         return get_predict_salary(salary_from, salary_to)
     else:
         return None
@@ -83,7 +74,7 @@ def get_sj_statistic_dict(language_list):
         vacancies_processed = 0
         summary_salary = 0
         next_page = True
-        while (next_page):
+        while next_page:
             headers = {
                 'X-Api-App-Id': secret_key
             }
@@ -110,24 +101,25 @@ def get_sj_statistic_dict(language_list):
     return middle_language_price_sj
 
 
-def table_output(title, statistic_dict):
-    TABLE_DATA = [['lang', 'vacancies_found', 'vacancies_processed', 'average_salary']]
-    for main_key, main_value in statistic_dict.items():
+def make_table(title, statistic_dict):
+    table_data = [['lang', 'vacancies_found', 'vacancies_processed', 'average_salary']]
+    for language, language_stat in statistic_dict.items():
         row = []
-        row.append(main_key)
-        for key, value in main_value.items():
+        row.append(language)
+        for key, value in language_stat.items():
             row.append(value)
-        TABLE_DATA.append(row)
-    table_instance = AsciiTable(TABLE_DATA, title)
+        table_data.append(row)
+    table_instance = AsciiTable(table_data, title)
     return table_instance.table
 
 
 if __name__ == "__main__":
-    language_list = ['Python', 'Java', 'Javascript','TypeScript', 'Swift',
-                     'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#', '1c']
-
+    load_dotenv()
+    #language_list = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift',
+    #               'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#', '1c']
+    language_list = ['Javascript', 'TypeScript', 'Swift']
     title = '--------------------HH statistics'
-    print(table_output(title, get_hh_statistic_dict(language_list)))
+    print(make_table(title, get_hh_statistic_dict(language_list)))
 
     title = '--------------------SJ statistics'
-    print(table_output(title, get_sj_statistic_dict(language_list)))
+    print(make_table(title, get_sj_statistic_dict(language_list)))
