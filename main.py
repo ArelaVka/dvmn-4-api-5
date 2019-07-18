@@ -117,7 +117,8 @@ def get_sj_statistic_dict(language_list):
     return middle_language_price_sj
 
 
-def make_table(title, statistic_dict):
+def make_table(site_name, statistic_dict):
+    title = '-----------------{} statistics'.format(site_name)
     if statistic_dict:
         table_data = [['lang', 'vacancies_found', 'vacancies_processed', 'average_salary']]
         for language, language_stat in statistic_dict.items():
@@ -134,8 +135,8 @@ if __name__ == "__main__":
     load_dotenv()
     language_list = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift',
                    'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#', '1c']
-    title = '--------------------HH statistics'
-    print(make_table(title, get_hh_statistic_dict(language_list)))
+    site_name = 'HH'
+    print(make_table(site_name, get_hh_statistic(language_list)))
 
-    title = '--------------------SJ statistics'
-    print(make_table(title, get_sj_statistic_dict(language_list)))
+    site_name = 'SJ'
+    print(make_table(site_name, get_sj_statistic_dict(language_list)))
