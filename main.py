@@ -2,6 +2,7 @@ import requests
 from dotenv import load_dotenv
 import os
 from terminaltables import AsciiTable
+import json
 
 
 def get_predict_salary(salary_from, salary_to):
@@ -11,8 +12,6 @@ def get_predict_salary(salary_from, salary_to):
         return int(salary_from * 1.2)
     elif salary_to > 0:
         return int(salary_to * 0.8)
-    else:
-        return None
 
 
 def get_predict_rub_salary_hh(vacancy):
@@ -20,7 +19,6 @@ def get_predict_rub_salary_hh(vacancy):
         salary_from = (vacancy['salary']['from']) or 0
         salary_to = (vacancy['salary']['to']) or 0
         return get_predict_salary(salary_from, salary_to)
-    return None
 
 
 def get_predict_rub_salary_sj(vacancy):
@@ -28,8 +26,6 @@ def get_predict_rub_salary_sj(vacancy):
     salary_to = vacancy['payment_to']
     if vacancy['currency'] == 'rub':
         return get_predict_salary(salary_from, salary_to)
-    else:
-        return None
 
 
 def check_request(request):
@@ -84,6 +80,7 @@ def get_sj_statistic_dict(language_list):
     middle_language_price_sj = {}
     for language in language_list:
         page = 0
+        page_data = []
         vacancies_processed = 0
         summary_salary = 0
         next_page = True
@@ -99,22 +96,23 @@ def get_sj_statistic_dict(language_list):
                 'catalogues': 48,  # Список разделов каталога отраслей. 48 - "Разработка, программирование"
                 'no_agreement': 1  # Без вакансий, где оклад по договоренности
             }
-            page_data = requests.get(sj_url, headers=headers, params=params)
-            if check_request(page_data):
-                page_json_data = page_data.json()
-                next_page = page_json_data['more']
+            page_request = requests.get(sj_url, headers=headers, params=params)
+            if check_request(page_request):
+                page_data.append(page_request.json()['objects'])
+                next_page = page_request.json()['more']
                 page = page + 1
-                for vacancy in page_json_data['objects']:
-                    vacancies_processed += 1
-                    summary_salary = int(summary_salary + get_predict_rub_salary_sj(vacancy))
-                    average_salary = int(summary_salary / vacancies_processed)
-                    middle_language_price_sj[language] = {
-                        'vacancies_found': page_json_data['total'],
-                        'vacancies_processed': vacancies_processed,
-                        'average_salary': average_salary
-                    }
             else:
                 next_page = False
+        for vacancies in page_data:
+            for vacancy in vacancies:
+                vacancies_processed += 1
+                summary_salary = int(summary_salary + get_predict_rub_salary_sj(vacancy))
+                average_salary = int(summary_salary / vacancies_processed)
+                middle_language_price_sj[language] = {
+                    'vacancies_found': page_request.json()['total'],
+                    'vacancies_processed': vacancies_processed,
+                    'average_salary': average_salary
+                }
     return middle_language_price_sj
 
 
@@ -135,7 +133,7 @@ def make_table(site_name, statistic_dict):
 if __name__ == "__main__":
     load_dotenv()
     language_list = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift',
-                     'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#', '1c']
+                    'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#', '1c']
     site_name = 'HH'
     print(make_table(site_name, get_hh_statistic(language_list)))
 
