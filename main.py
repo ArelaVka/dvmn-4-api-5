@@ -95,8 +95,7 @@ def get_sj_statistic_dict(language_list):
                 'count': 5,  # Количество результатов на страницу поиска
                 'keyword': language, # Язык программирования
                 'town': 4,  # Название города или его ID. 4 - Москва
-                'catalogues':
-                48,  # Список разделов каталога отраслей. 48 - "Разработка, программирование"
+                'catalogues': 48,  # Список разделов каталога отраслей. 48 - "Разработка, программирование"
                 'no_agreement': 1  # Без вакансий, где оклад по договоренности
             }
             page_request = requests.get(sj_url, headers=headers, params=params)
