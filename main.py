@@ -2,30 +2,34 @@ import requests
 from dotenv import load_dotenv
 import os
 from terminaltables import AsciiTable
-import json
 
 
-def get_predict_salary(salary_from, salary_to):
-    if (salary_from > 0) and (salary_to > 0):
-        return int((salary_from + salary_to) / 2)
+def predict_salary(salary_from, salary_to):
+    if salary_from > 0 and salary_to > 0:
+        mid_salary = int((salary_from + salary_to) / 2)
     elif salary_from > 0:
-        return int(salary_from * 1.2)
+        mid_salary = int(salary_from * 1.2)
     elif salary_to > 0:
-        return int(salary_to * 0.8)
+        mid_salary = int(salary_to * 0.8)
+    return mid_salary
 
 
-def get_predict_rub_salary_hh(vacancy):
-    if (vacancy['salary']) and (vacancy['salary']['currency'] == 'RUR'):
-        salary_from = (vacancy['salary']['from']) or 0
-        salary_to = (vacancy['salary']['to']) or 0
-        return get_predict_salary(salary_from, salary_to)
+def predict_rub_salary_hh(vacancy):
+    hh_rub_salary = 0
+    if vacancy['salary'] and vacancy['salary']['currency'] == 'RUR':
+        salary_from = vacancy['salary']['from'] or 0
+        salary_to = vacancy['salary']['to'] or 0
+        hh_rub_salary = predict_salary(salary_from, salary_to)
+    return hh_rub_salary
 
 
-def get_predict_rub_salary_sj(vacancy):
+def predict_rub_salary_sj(vacancy):
+    sj_predict_salary = 0
     salary_from = vacancy['payment_from']
     salary_to = vacancy['payment_to']
     if vacancy['currency'] == 'rub':
-        return get_predict_salary(salary_from, salary_to)
+        sj_predict_salary = predict_salary(salary_from, salary_to)
+    return sj_predict_salary
 
 
 def check_request(request):
@@ -47,27 +51,27 @@ def get_hh_statistic(language_list):
         vacancies_processed = 0
         summary_salary = 0
         while page < pages_number:
-            headers = {
-                'User-Agent': 'HH-User-Agent'
-            }
+            headers = {'User-Agent': 'HH-User-Agent'}
             params = {
-                'area': 1,
+                'area': 1, # Код города, 1 - Москва
                 'text': 'программист ' + language,
-                'page': page
+                'page': page # Страница поиска
             }
             page_request = requests.get(hh_url, headers=headers, params=params)
             page += 1
             if check_request(page_request):
-                page_data.append(page_request.json()['items'])
-                pages_number = page_request.json()['pages']
+                answer = page_request.json()
+                page_data.append(answer['items'])
+                pages_number = answer['pages']
         for vacancies in page_data:
             for vacancy in vacancies:
-                if get_predict_rub_salary_hh(vacancy):
+                if predict_rub_salary_hh(vacancy):
                     vacancies_processed += 1
-                    summary_salary = int(summary_salary + get_predict_rub_salary_hh(vacancy))
+                    summary_salary = int(summary_salary +
+                                         predict_rub_salary_hh(vacancy))
                     average_salary = int(summary_salary / vacancies_processed)
                     middle_language_price_hh[language] = {
-                        'vacancies_found': page_request.json()['found'],
+                        'vacancies_found': answer['found'],
                         'vacancies_processed': vacancies_processed,
                         'average_salary': average_salary
                     }
@@ -85,31 +89,32 @@ def get_sj_statistic_dict(language_list):
         summary_salary = 0
         next_page = True
         while next_page:
-            headers = {
-                'X-Api-App-Id': secret_key
-            }
+            headers = {'X-Api-App-Id': secret_key}
             params = {
                 'page': page,  # Номер страницы результата поиска
                 'count': 5,  # Количество результатов на страницу поиска
-                'keyword': language,
+                'keyword': language, # Язык программирования
                 'town': 4,  # Название города или его ID. 4 - Москва
-                'catalogues': 48,  # Список разделов каталога отраслей. 48 - "Разработка, программирование"
+                'catalogues':
+                48,  # Список разделов каталога отраслей. 48 - "Разработка, программирование"
                 'no_agreement': 1  # Без вакансий, где оклад по договоренности
             }
             page_request = requests.get(sj_url, headers=headers, params=params)
             if check_request(page_request):
-                page_data.append(page_request.json()['objects'])
-                next_page = page_request.json()['more']
+                answer = page_request.json()
+                page_data.append(answer['objects'])
+                next_page = answer['more']
                 page = page + 1
             else:
                 next_page = False
         for vacancies in page_data:
             for vacancy in vacancies:
                 vacancies_processed += 1
-                summary_salary = int(summary_salary + get_predict_rub_salary_sj(vacancy))
+                summary_salary = int(summary_salary +
+                                     predict_rub_salary_sj(vacancy))
                 average_salary = int(summary_salary / vacancies_processed)
                 middle_language_price_sj[language] = {
-                    'vacancies_found': page_request.json()['total'],
+                    'vacancies_found': answer['total'],
                     'vacancies_processed': vacancies_processed,
                     'average_salary': average_salary
                 }
@@ -119,7 +124,9 @@ def get_sj_statistic_dict(language_list):
 def make_table(site_name, statistic_dict):
     title = '-----------------{} statistics'.format(site_name)
     if statistic_dict:
-        table_data = [['lang', 'vacancies_found', 'vacancies_processed', 'average_salary']]
+        table_data = [[
+            'lang', 'vacancies_found', 'vacancies_processed', 'average_salary'
+        ]]
         for language, language_stat in statistic_dict.items():
             row = [language]
             for key, value in language_stat.items():
@@ -132,8 +139,9 @@ def make_table(site_name, statistic_dict):
 
 if __name__ == "__main__":
     load_dotenv()
-    language_list = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift',
-                    'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#', '1c']
+    # language_list = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift',
+    #                'Scala', 'Objective-C', 'Shell', 'Go', 'C', 'PHP', 'Ruby', 'c++', 'c#',#  '1c']
+    language_list = ['Python']
     site_name = 'HH'
     print(make_table(site_name, get_hh_statistic(language_list)))
 
