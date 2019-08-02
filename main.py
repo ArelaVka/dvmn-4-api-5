@@ -32,19 +32,11 @@ def predict_rub_salary_sj(vacancy):
     return sj_predict_salary
 
 
-def check_request(request):
-    try:
-        request.raise_for_status()
-        return request
-    except requests.exceptions.HTTPError as error:
-        print('ERROR: {}'.format(error))
-        return None
-
-
 def get_vacancies_from_hh(language):
     hh_url = 'https://api.hh.ru/vacancies'
     page = 0  # первая страница поиска (нумерация с 0)
     number_of_pages = 1
+    number_of_vacancies = None
     vacancies_data = []
     while page < number_of_pages:
         headers = {'User-Agent': 'HH-User-Agent'}
@@ -54,14 +46,15 @@ def get_vacancies_from_hh(language):
             'page': page  # Текущая страница поиска
         }
         response = requests.get(hh_url, headers=headers, params=params)
-        if check_request(response):
-            response_data = response.json()
-            vacancies_data.extend(response_data['items'])
-
-            number_of_pages = response_data['pages'] - 1
-            # print('Download {} pages: {}/{}'.format(language, page, number_of_pages))
-            page += 1
-    number_of_vacancies = response_data['found']
+        page += 1
+        if not response.ok:
+            print('URL: {}\nrequest failed, status code: {}'.format(response.url, response.status_code))
+            continue
+        response_data = response.json()
+        vacancies_data.extend(response_data['items'])
+        number_of_pages = response_data['pages'] - 1
+        # print('Download {} pages: {}/{}'.format(language, page, number_of_pages))
+        number_of_vacancies = response_data['found']
     return [vacancies_data, number_of_vacancies]
 
 
@@ -97,6 +90,7 @@ def get_vacancies_from_sj(language):
     page = 0
     next_page = True
     vacancies_data = []
+    number_of_vacancies = None
     while next_page:
         headers = {'X-Api-App-Id': secret_key}
         params = {
@@ -108,15 +102,16 @@ def get_vacancies_from_sj(language):
             'no_agreement': 1  # Без вакансий, где оклад по договоренности
         }
         response = requests.get(sj_url, headers=headers, params=params)
-        if check_request(response):
-            response_data = response.json()
-            vacancies_data.extend(response_data['objects'])
-            next_page = response_data['more']
-            # print('Download {} pages: {}'.format(language, page))
-            page += 1
-        else:
+        page += 1
+        if not response.ok:
+            print('URL: {}\nrequest failed, status code: {}'.format(response.url, response.status_code))
             next_page = False
-    number_of_vacancies = response_data['total']
+            continue
+        response_data = response.json()
+        vacancies_data.extend(response_data['objects'])
+        next_page = response_data['more']
+        # print('Download {} pages: {}'.format(language, page))
+        number_of_vacancies = response_data['total']
     return [vacancies_data, number_of_vacancies]
 
 
@@ -158,11 +153,9 @@ def make_table(site_name, statistic_dict):
                     row.append(value)
                 table_data.append(row)
         return AsciiTable(table_data, title).table
-    else:
-        return 'No data was found'
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     load_dotenv()
     language_list = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift', 'Scala', 'Objective-C', 'Shell', 'Go', 'C',
                      'PHP', 'Ruby', 'c++', 'c#', '1c']
