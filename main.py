@@ -117,7 +117,6 @@ def get_vacancies_from_sj(language):
         else:
             next_page = False
     number_of_vacancies = response_data['total']
-    # print(number_of_vacancies)
     return [vacancies_data, number_of_vacancies]
 
 
