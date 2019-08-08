@@ -33,7 +33,7 @@ def predict_rub_salary_sj(vacancy):
 
 
 def get_vacancies_from_hh(language):
-    hh_url = 'https://api.hh.ru/vacancies111'
+    hh_url = 'https://api.hh.ru/vacancies'
     page = 0  # первая страница поиска (нумерация с 0)
     number_of_pages = 1
     vacancies = []
@@ -48,15 +48,8 @@ def get_vacancies_from_hh(language):
         page += 1
         try:
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            print('ERROR - {}'.format(e))
-            return e
-            break
-        '''
-        if not response.ok:
-            print('URL: {}\nrequest failed, status code: {}'.format(response.url, response.status_code))
+        except requests.exceptions.HTTPError:
             continue
-        '''
         response_data = response.json()
         vacancies.extend(response_data['items'])
         number_of_pages = response_data['pages'] - 1
@@ -64,16 +57,17 @@ def get_vacancies_from_hh(language):
 
 
 def get_hh_statistic(vacancies):
-    number_of_vacancies = len(vacancies)
-    salaries = [predict_rub_salary_hh(vacancy) for vacancy in vacancies if predict_rub_salary_hh(vacancy) != 0]
-    vacancies_processed = len(salaries)
-    average_salary = int(sum(salaries)/vacancies_processed)
-    hh_statistics = {
-        'vacancies_found': number_of_vacancies,
-        'vacancies_processed': vacancies_processed,
-        'average_salary': average_salary
-    }
-    return hh_statistics
+    if vacancies:
+        number_of_vacancies = len(vacancies)
+        salaries = [predict_rub_salary_hh(vacancy) for vacancy in vacancies if predict_rub_salary_hh(vacancy) != 0]
+        vacancies_processed = len(salaries)
+        average_salary = int(sum(salaries)/vacancies_processed)
+        hh_statistics = {
+            'vacancies_found': number_of_vacancies,
+            'vacancies_processed': vacancies_processed,
+            'average_salary': average_salary
+        }
+        return hh_statistics
 
 
 def make_all_language_stat_from_hh(languages):
@@ -102,8 +96,9 @@ def get_vacancies_from_sj(language):
         }
         response = requests.get(sj_url, headers=headers, params=params)
         page += 1
-        if not response.ok:
-            print('URL: {}\nrequest failed, status code: {}'.format(response.url, response.status_code))
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
             next_page = False
             continue
         response_data = response.json()
@@ -114,14 +109,15 @@ def get_vacancies_from_sj(language):
 
 def get_sj_statistic(vacancies):
     number_of_vacancies = len(vacancies)
-    salaries = [predict_rub_salary_sj(vacancy) for vacancy in vacancies]
-    average_salary = int(sum(salaries)/number_of_vacancies)
-    sj_statistics = {
-        'vacancies_found': number_of_vacancies,
-        'vacancies_processed': number_of_vacancies,
-        'average_salary': average_salary
-    }
-    return sj_statistics
+    if number_of_vacancies:
+        salaries = [predict_rub_salary_sj(vacancy) for vacancy in vacancies]
+        average_salary = int(sum(salaries)/number_of_vacancies)
+        sj_statistics = {
+            'vacancies_found': number_of_vacancies,
+            'vacancies_processed': number_of_vacancies,
+            'average_salary': average_salary
+        }
+        return sj_statistics
 
 
 def make_all_language_stat_from_sj(languages):
@@ -132,13 +128,13 @@ def make_all_language_stat_from_sj(languages):
     return stat
 
 
-def make_table(site_name, statistic_dict):
+def make_table(site_name, statistic):
     title = '-----------------{} statistics'.format(site_name)
-    if statistic_dict:
+    if statistic:
         table_data = [[
             'lang', 'vacancies_found', 'vacancies_processed', 'average_salary'
         ]]
-        for language, language_stat in statistic_dict.items():
+        for language, language_stat in statistic.items():
             if not language_stat:
                 continue
             row = [language]
