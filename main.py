@@ -146,9 +146,8 @@ def make_table(site_name, statistic):
 
 if __name__ == '__main__':
     load_dotenv()
-    # languages = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift', 'Scala', 'Objective-C', 'Shell', 'Go', 'C',
-    #                  'PHP', 'Ruby', 'c++', 'c#', '1c']
-    languages = ['Swift', 'TypeScript']
+    languages = ['Python', 'Java', 'Javascript', 'TypeScript', 'Swift', 'Scala', 'Objective-C', 'Shell', 'Go', 'C', 
+                 'PHP', 'Ruby', 'c++', 'c#', '1c']
     site_name = 'HH'
     print(make_table(site_name, make_all_language_stat_from_hh(languages)))
 
